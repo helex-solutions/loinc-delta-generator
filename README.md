@@ -139,6 +139,19 @@ java -Xmx2g -jar build/libs/loinc-delta-generator-0.1.0-SNAPSHOT.jar ~/Downloads
 The delta is written to `LoincDelta_2.78_2.83.zip` in the working directory; pass `-o <file>` to put
 it elsewhere.
 
+For a command you can run directly, let Gradle's `application` plugin generate a launcher script. Run
+both commands from the repository root; `./gradlew` exists only there:
+
+```bash
+./gradlew installDist
+```
+
+```bash
+build/install/loinc-delta-generator/bin/loinc-delta-generator ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip
+```
+
+The launcher already passes `-Xmx2g`.
+
 To release, push a tag `v<version>`. CI then does two things:
 
 - attaches `loinc-delta-generator-<version>.jar` and its `.sha256` to a GitHub release;
