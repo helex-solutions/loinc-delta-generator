@@ -129,6 +129,16 @@ are numbered by occurrence, so those rows are still matched one to one.
 
 The jar lands in `build/libs/`. It has no runtime dependencies.
 
+A jar is not a native executable, so the shell cannot run it directly (`exec format error`). Start it
+with `java -jar`, and give both release zips with their `.zip` extension:
+
+```bash
+java -Xmx2g -jar build/libs/loinc-delta-generator-0.1.0-SNAPSHOT.jar ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip
+```
+
+The delta is written to `LoincDelta_2.78_2.83.zip` in the working directory; pass `-o <file>` to put
+it elsewhere.
+
 To release, push a tag `v<version>`. CI then does two things:
 
 - attaches `loinc-delta-generator-<version>.jar` and its `.sha256` to a GitHub release;
