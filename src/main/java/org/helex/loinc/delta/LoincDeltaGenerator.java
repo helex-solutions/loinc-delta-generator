@@ -4,8 +4,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystemException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.StandardCopyOption;
@@ -46,7 +52,8 @@ public final class LoincDeltaGenerator {
             Options:
               -d, --output-dir <dir>      Folder for the delta zip, created if missing
                                           (default: the current folder)
-              -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir
+              -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir,
+                                          and an existing folder gets the default name inside it
                                           (default: LoincDelta_<previous>_<current>.zip)
                   --previous-version <v>  Version label of the previous release (default: from the file name,
                                           else the highest VersionLastChanged in LoincTable/Loinc.csv)
@@ -88,9 +95,25 @@ public final class LoincDeltaGenerator {
             generate(options, out, err);
             return 0;
         } catch (IOException | RuntimeException e) {
-            err.println("Failed: " + e.getMessage());
+            err.println("Failed: " + describe(e));
             return 1;
         }
+    }
+
+    /** File-system exceptions carry only the path as their message; say what happened to it. */
+    static String describe(Exception e) {
+        if (e instanceof FileSystemException fse) {
+            String what = switch (e) {
+                case NoSuchFileException x -> "no such file or folder";
+                case AccessDeniedException x -> "permission denied";
+                case FileAlreadyExistsException x -> "already exists";
+                case DirectoryNotEmptyException x -> "is a folder that is not empty";
+                case NotDirectoryException x -> "is not a folder";
+                default -> fse.getReason() != null ? fse.getReason() : e.getClass().getSimpleName();
+            };
+            return fse.getFile() + ": " + what;
+        }
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     static void generate(Options options, PrintStream out, PrintStream err) throws IOException {
@@ -111,8 +134,12 @@ public final class LoincDeltaGenerator {
             }
 
             List<String> paths = selectPaths(previous, current, options);
-            Path target = options.outputDir.resolve(options.output != null ? options.output
-                    : Path.of(defaultOutputName(previous.version(), current.version())));
+            String defaultName = defaultOutputName(previous.version(), current.version());
+            Path target = options.outputDir.resolve(options.output != null ? options.output : Path.of(defaultName));
+            // `-o ~/deltas` naming an existing folder means "put it there", like -d.
+            if (Files.isDirectory(target)) {
+                target = target.resolve(defaultName);
+            }
             Path parent = target.toAbsolutePath().getParent();
             Files.createDirectories(parent);
             Path tempDir = Files.createTempDirectory("loinc-delta");

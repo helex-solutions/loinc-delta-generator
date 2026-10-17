@@ -40,7 +40,8 @@ java -jar loinc-delta-generator.jar <previous.zip> <current.zip> [options]
 
   -d, --output-dir <dir>      Folder for the delta zip, created if missing
                               (default: the current folder)
-  -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir
+  -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir,
+                              and an existing folder gets the default name inside it
                               (default: LoincDelta_<previous>_<current>.zip)
       --previous-version <v>  Version label of the previous release (default: from the file name,
                               else the highest VersionLastChanged in LoincTable/Loinc.csv)
@@ -79,6 +80,7 @@ is `LoincDelta_<previous>_<current>.zip`, for example `LoincDelta_2.78_2.83.zip`
 | `… -d ~/deltas` | `~/deltas/LoincDelta_2.78_2.83.zip` |
 | `… -d ~/deltas -o nl.zip` | `~/deltas/nl.zip` |
 | `… -o /tmp/nl.zip` | `/tmp/nl.zip`: an absolute `-o` ignores `-d` |
+| `… -o ~/Downloads/LOINC` (an existing folder) | `~/Downloads/LOINC/LoincDelta_2.78_2.83.zip` |
 
 The folder is created if it does not exist. The zip appears only when the run succeeds; until then
 it is a hidden `.loinc-delta*.zip.partial` file in the same folder. `--summary-only` writes no zip.
