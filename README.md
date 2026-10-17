@@ -129,8 +129,33 @@ are numbered by occurrence, so those rows are still matched one to one.
 
 The jar lands in `build/libs/`. It has no runtime dependencies.
 
-To release, push a tag `v<version>`. CI attaches `loinc-delta-generator-<version>.jar` and its
-`.sha256` to a GitHub release.
+To release, push a tag `v<version>`. CI then does two things:
+
+- attaches `loinc-delta-generator-<version>.jar` and its `.sha256` to a GitHub release;
+- publishes `org.helex.loinc:loinc-delta-generator:<version>` to GitHub Packages.
+
+To publish an existing tag that predates one of those steps, run the Release workflow by hand with
+that version.
+
+### From GitHub Packages
+
+Reading from GitHub Packages needs a token with `read:packages`, even for a public repository:
+
+```kotlin
+repositories {
+    maven {
+        url = uri("https://maven.pkg.github.com/helex-solutions/loinc-delta-generator")
+        credentials {
+            username = providers.environmentVariable("GITHUB_ACTOR").orNull
+            password = providers.environmentVariable("GITHUB_TOKEN").orNull
+        }
+    }
+}
+
+dependencies {
+    implementation("org.helex.loinc:loinc-delta-generator:0.1.0")
+}
+```
 
 ## LOINC content
 
