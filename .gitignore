@@ -1,0 +1,6 @@
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.zip
+.DS_Store
+.idea/
