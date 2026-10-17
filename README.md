@@ -38,8 +38,10 @@ links and hierarchy paths, and a red flag for `Loinc.csv`; the summary calls it 
 ```
 java -jar loinc-delta-generator.jar <previous.zip> <current.zip> [options]
 
-  -o, --output <file>         Delta zip to write
-                              (default: LoincDelta_<previous>_<current>.zip in the working directory)
+  -d, --output-dir <dir>      Folder for the delta zip, created if missing
+                              (default: the current folder)
+  -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir
+                              (default: LoincDelta_<previous>_<current>.zip)
       --previous-version <v>  Version label of the previous release (default: from the file name,
                               else the highest VersionLastChanged in LoincTable/Loinc.csv)
       --current-version <v>   Version label of the current release (same default)
@@ -64,6 +66,25 @@ Requirements: Java 21 or newer. Diffing 2.78 against 2.82 in full took 51 s on a
 `-Xmx2g` (peak resident memory 880 MB).
 
 ## Output
+
+### Where it goes
+
+The delta zip is written to `--output-dir`, by default the folder you run the command from. Its name
+is `LoincDelta_<previous>_<current>.zip`, for example `LoincDelta_2.78_2.83.zip`, unless you pass
+`-o`:
+
+| Command | Delta zip |
+|---|---|
+| `… Loinc_2.78.zip Loinc_2.83.zip` | `./LoincDelta_2.78_2.83.zip` |
+| `… -d ~/deltas` | `~/deltas/LoincDelta_2.78_2.83.zip` |
+| `… -d ~/deltas -o nl.zip` | `~/deltas/nl.zip` |
+| `… -o /tmp/nl.zip` | `/tmp/nl.zip`: an absolute `-o` ignores `-d` |
+
+The folder is created if it does not exist. The zip appears only when the run succeeds; until then
+it is a hidden `.loinc-delta*.zip.partial` file in the same folder. `--summary-only` writes no zip.
+The last lines of output give the full path (`Delta written to …`).
+
+### What it contains
 
 The delta zip mirrors the release layout. It contains only the CSV files that changed, plus two
 summary files at the root.
@@ -136,8 +157,8 @@ with `java -jar`, and give both release zips with their `.zip` extension:
 java -Xmx2g -jar build/libs/loinc-delta-generator-0.1.0-SNAPSHOT.jar ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip
 ```
 
-The delta is written to `LoincDelta_2.78_2.83.zip` in the working directory; pass `-o <file>` to put
-it elsewhere.
+The delta is written to `LoincDelta_2.78_2.83.zip` in the current folder; pass `-d <dir>` to put it
+in another folder (see [Where it goes](#where-it-goes)).
 
 For a command you can run directly, let Gradle's `application` plugin generate a launcher script. Run
 both commands from the repository root; `./gradlew` exists only there:

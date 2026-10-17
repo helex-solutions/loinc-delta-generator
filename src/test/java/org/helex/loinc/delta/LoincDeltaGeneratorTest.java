@@ -179,6 +179,23 @@ class LoincDeltaGeneratorTest {
     }
 
     @Test
+    void outputDirHoldsTheDefaultNameAndRelativeOutputNames() throws IOException {
+        String[] header = row("LOINC_NUM", "COMPONENT");
+        Path previous = zip("Loinc_9.1.zip", Map.of(LOINC, csv(header, row("1-1", "a"))));
+        Path current = zip("Loinc_9.2.zip", Map.of(LOINC, csv(header, row("1-1", "b"))));
+        Path outDir = dir.resolve("deltas/nested");
+
+        assertEquals(0, LoincDeltaGenerator.run(new String[] {previous.toString(), current.toString(), "-d", outDir.toString()},
+                new PrintStream(OutputStream.nullOutputStream()), System.err));
+        assertTrue(Files.isRegularFile(outDir.resolve("LoincDelta_9.1_9.2.zip")));
+
+        assertEquals(0, LoincDeltaGenerator.run(
+                new String[] {previous.toString(), current.toString(), "--output-dir", outDir.toString(), "-o", "custom.zip"},
+                new PrintStream(OutputStream.nullOutputStream()), System.err));
+        assertTrue(Files.isRegularFile(outDir.resolve("custom.zip")));
+    }
+
+    @Test
     void badArgumentsExitWithTwo() {
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         int exit = LoincDeltaGenerator.run(new String[] {"only-one.zip"}, new PrintStream(OutputStream.nullOutputStream()),
