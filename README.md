@@ -4,8 +4,11 @@ Compares two LOINC release zips and writes every row that was added, modified or
 file, into a delta zip.
 
 ```bash
-java -jar loinc-delta-generator.jar Loinc_2.78.zip Loinc_2.82.zip
+java -Xmx2g -jar loinc-delta-generator.jar Loinc_2.78.zip Loinc_2.83.zip -d ~/Downloads/LOINC
 ```
+
+This writes `~/Downloads/LOINC/LoincDelta_2.78_2.83.zip`. Without `-d`, the zip goes to the current
+folder. See [Build and run](#build-and-run) to get the jar.
 
 ## Why
 
@@ -144,7 +147,9 @@ has is reported in the summary; it does not, by itself, make every row `MODIFIED
 A few files repeat a key. `ComponentHierarchyBySystem.csv` even holds identical rows. Repeated keys
 are numbered by occurrence, so those rows are still matched one to one.
 
-## Build
+## Build and run
+
+Build from the repository root (`./gradlew` exists only there):
 
 ```bash
 ./gradlew build
@@ -156,26 +161,29 @@ A jar is not a native executable, so the shell cannot run it directly (`exec for
 with `java -jar`, and give both release zips with their `.zip` extension:
 
 ```bash
-java -Xmx2g -jar build/libs/loinc-delta-generator-0.1.0-SNAPSHOT.jar ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip
+java -Xmx2g -jar build/libs/loinc-delta-generator-0.1.0-SNAPSHOT.jar ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip -d ~/Downloads/LOINC
 ```
 
-The delta is written to `LoincDelta_2.78_2.83.zip` in the current folder; pass `-d <dir>` to put it
-in another folder (see [Where it goes](#where-it-goes)).
+This writes `~/Downloads/LOINC/LoincDelta_2.78_2.83.zip`. Leave out `-d` to write into the current
+folder (see [Where it goes](#where-it-goes)). The released jar from the
+[GitHub releases](https://github.com/helex-solutions/loinc-delta-generator/releases) runs the same
+way.
 
-For a command you can run directly, let Gradle's `application` plugin generate a launcher script. Run
-both commands from the repository root; `./gradlew` exists only there:
+For a command you can run directly, let Gradle's `application` plugin generate a launcher script:
 
 ```bash
 ./gradlew installDist
 ```
 
 ```bash
-build/install/loinc-delta-generator/bin/loinc-delta-generator ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip
+build/install/loinc-delta-generator/bin/loinc-delta-generator ~/Downloads/LOINC/Loinc_2.78.zip ~/Downloads/LOINC/Loinc_2.83.zip -d ~/Downloads/LOINC
 ```
 
 The launcher already passes `-Xmx2g`.
 
-To release, push a tag `v<version>`. CI then does two things:
+## Release
+
+Push a tag `v<version>`. CI then does two things:
 
 - attaches `loinc-delta-generator-<version>.jar` and its `.sha256` to a GitHub release;
 - publishes `org.helex.loinc:loinc-delta-generator:<version>` to GitHub Packages.
