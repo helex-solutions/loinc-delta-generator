@@ -196,6 +196,25 @@ class LoincDeltaGeneratorTest {
     }
 
     @Test
+    void outputNamingAnExistingFolderPutsTheDefaultNameInside() throws IOException {
+        String[] header = row("LOINC_NUM", "COMPONENT");
+        Path previous = zip("Loinc_9.1.zip", Map.of(LOINC, csv(header, row("1-1", "a"))));
+        Path current = zip("Loinc_9.2.zip", Map.of(LOINC, csv(header, row("1-1", "b"))));
+        Path folder = Files.createDirectories(dir.resolve("existing"));
+
+        assertEquals(0, LoincDeltaGenerator.run(new String[] {previous.toString(), current.toString(), "-o", folder.toString()},
+                new PrintStream(OutputStream.nullOutputStream()), System.err));
+        assertTrue(Files.isRegularFile(folder.resolve("LoincDelta_9.1_9.2.zip")));
+    }
+
+    @Test
+    void fileErrorsSayWhatWentWrong() {
+        assertEquals("/x/y: no such file or folder", LoincDeltaGenerator.describe(new java.nio.file.NoSuchFileException("/x/y")));
+        assertEquals("/x/y: is a folder that is not empty",
+                LoincDeltaGenerator.describe(new java.nio.file.DirectoryNotEmptyException("/x/y")));
+    }
+
+    @Test
     void badArgumentsExitWithTwo() {
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         int exit = LoincDeltaGenerator.run(new String[] {"only-one.zip"}, new PrintStream(OutputStream.nullOutputStream()),
