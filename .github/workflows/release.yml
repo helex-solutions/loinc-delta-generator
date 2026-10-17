@@ -1,30 +1,62 @@
 name: Release
 
-# Push a tag `v<version>` (e.g. v0.1.0) to publish loinc-delta-generator-<version>.jar and its
-# SHA-256 as a GitHub release. Hosts download the pinned jar and verify the checksum.
+# Push a tag `v<version>` (e.g. v0.2.0) to:
+# - publish loinc-delta-generator-<version>.jar and its SHA-256 as a GitHub release, which hosts
+#   download as a pinned jar and verify by checksum;
+# - publish org.helex.loinc:loinc-delta-generator:<version> to GitHub Packages (Maven).
+#
+# Run it by hand with a version to publish an existing tag that predates a step: a release that
+# already exists is left as it is.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, without the v (the tag v<version> must exist)
+        required: true
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
     steps:
+      - name: Resolve version
+        run: echo "VERSION=${VERSION#v}" >> "$GITHUB_ENV"
       - uses: actions/checkout@v7
+        with:
+          ref: v${{ env.VERSION }}
+      # A tag cut before publishing existed has no maven-publish block; build it with the
+      # default branch's build script instead (the sources stay the tag's).
+      - name: Use the current build script
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --depth=1 origin "${{ github.event.repository.default_branch }}"
+          git checkout FETCH_HEAD -- build.gradle.kts
       - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 21 }
       - uses: gradle/actions/setup-gradle@v5
       - name: Build
-        run: ./gradlew build --no-daemon -PreleaseVersion="${GITHUB_REF_NAME#v}"
-      - name: Publish
+        run: ./gradlew build --no-daemon -PreleaseVersion="$VERSION"
+      - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          jar="build/libs/loinc-delta-generator-${version}.jar"
-          (cd build/libs && sha256sum "loinc-delta-generator-${version}.jar" > "loinc-delta-generator-${version}.jar.sha256")
-          gh release create "$GITHUB_REF_NAME" "$jar" "${jar}.sha256" --title "$GITHUB_REF_NAME" --generate-notes
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists; leaving it as it is."
+            exit 0
+          fi
+          jar="build/libs/loinc-delta-generator-${VERSION}.jar"
+          (cd build/libs && sha256sum "loinc-delta-generator-${VERSION}.jar" > "loinc-delta-generator-${VERSION}.jar.sha256")
+          gh release create "v$VERSION" "$jar" "${jar}.sha256" --title "v$VERSION" --generate-notes
+      - name: GitHub Packages
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./gradlew publish --no-daemon -PreleaseVersion="$VERSION"
