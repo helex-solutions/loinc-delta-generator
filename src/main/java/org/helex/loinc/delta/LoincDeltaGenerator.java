@@ -44,8 +44,10 @@ public final class LoincDeltaGenerator {
             removed, file by file, to a delta zip.
 
             Options:
-              -o, --output <file>         Delta zip to write
-                                          (default: LoincDelta_<previous>_<current>.zip in the working directory)
+              -d, --output-dir <dir>      Folder for the delta zip, created if missing
+                                          (default: the current folder)
+              -o, --output <file>         File name of the delta zip; a relative name is placed in --output-dir
+                                          (default: LoincDelta_<previous>_<current>.zip)
                   --previous-version <v>  Version label of the previous release (default: from the file name,
                                           else the highest VersionLastChanged in LoincTable/Loinc.csv)
                   --current-version <v>   Version label of the current release (same default)
@@ -109,8 +111,8 @@ public final class LoincDeltaGenerator {
             }
 
             List<String> paths = selectPaths(previous, current, options);
-            Path target = options.output != null ? options.output
-                    : Path.of(defaultOutputName(previous.version(), current.version()));
+            Path target = options.outputDir.resolve(options.output != null ? options.output
+                    : Path.of(defaultOutputName(previous.version(), current.version())));
             Path parent = target.toAbsolutePath().getParent();
             Files.createDirectories(parent);
             Path tempDir = Files.createTempDirectory("loinc-delta");
@@ -194,6 +196,7 @@ public final class LoincDeltaGenerator {
         Path previous;
         Path current;
         Path output;
+        Path outputDir = Path.of(".");
         String previousVersion;
         String currentVersion;
         final List<String> includes = new ArrayList<>();
@@ -212,6 +215,7 @@ public final class LoincDeltaGenerator {
                     case "--version" -> o.version = true;
                     case "--summary-only" -> o.summaryOnly = true;
                     case "-o", "--output" -> o.output = Path.of(value(args, ++i, a));
+                    case "-d", "--output-dir" -> o.outputDir = Path.of(value(args, ++i, a));
                     case "--previous-version" -> o.previousVersion = value(args, ++i, a);
                     case "--current-version" -> o.currentVersion = value(args, ++i, a);
                     case "--include" -> o.includes.add(value(args, ++i, a));
